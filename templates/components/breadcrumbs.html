@@ -1,0 +1,13 @@
+<div>BREADCRUMBS:
+    <a href="/">Магазини</a>
+
+    {% if items.0 %}
+        {% if items.0.shop %}
+            /&nbsp;<a href="/{{ items.0.site_id }}/">{{ items.0.shop.name }}</a>
+        {% endif %}
+        {% if items.0.category_id %}
+            /&nbsp; <a href="/{{ items.0.category.shop_id }}/">Категорії</a>
+            /&nbsp;{{ items.0.category.name }}
+        {% endif %}
+    {% endif %}
+</div>

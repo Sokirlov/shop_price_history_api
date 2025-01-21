@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}
+    {{ title }}
+{% endblock %}
+{% block head %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function build_charts(id, priceData, labels) {
+            const ctx = document.getElementById('priceChart-' + id).getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ціна товару',
+                        data: priceData,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false // Вимикає легенду (де відображається label)
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true, // Початок осі X з 0
+                            suggestedMax: Math.max(...priceData) * 1.4 // Оновлення максимуму динамічно
+                        },
+                    }
+                }
+            })
+        }
+    </script>
+    <style>
+        .goods-chart {
+            max-height: 200px;
+            max-width: 600px;
+        }
+
+        .sticky-top {
+            top: 40px !important;
+        }
+    </style>
+{% endblock %}
+{% block body %}
+    <table class="table">
+        <thead class="bg-light border-bottom sticky-top">
+        <tr>
+            <th>IMG</th>
+            <th>ID</th>
+            <th>НАЗВА</th>
+            <th>ЦІНА</th>
+            <th>графік</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for object in items %}
+            <tr class="{% if object.in_stock %}soldout{% endif %}">
+                <td><img src="{{ object.img_src }}" height="200px"/></td>
+                <td>{{ object.id }}</td>
+                <td class="name"><a href="{{ object.url }}" target="_blank">{{ object.name }}</a></td>
+                {#                <td></td>#}
+                <td>
+                {% if object.price_change > 0 %}
+                	{{ object.price_change }}&nbsp;|&nbsp;
+                {% endif %}
+                    {% if object.prices %}
+                        {{ object.prices.0.price }} грн / {{ object.packaging }}
+                    {% endif %}
+                </td>
+                <td class="goods-chart">{% include 'components/price_chart.html' %}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

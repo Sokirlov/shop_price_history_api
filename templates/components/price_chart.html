@@ -1,0 +1,8 @@
+<canvas id="priceChart-{{ object.id }}"></canvas>
+<script>
+    build_charts(
+        {{ object.id  }},
+        [{% for price in object.prices|reverse %}{{ price.price }}, {% endfor %}],
+        [{% for price in object.prices|reverse %}"{{ price.updated_at.strftime("%Y-%m-%d")}}", {% endfor %}]
+    )
+</script>

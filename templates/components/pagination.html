@@ -1,0 +1,36 @@
+<div class="footer">
+    <div class="d-flex justify-content-between">
+            <div>
+                {% if page > 1 %}
+                <a href="{{ request.url.include_query_params(page=page - 1) }}"><< prev</a>
+                {% endif %}
+            </div>
+
+            {% for p in range(page - 5, page) %}
+                <div>
+                    {% if p > 0 %}
+                        <a href="{{ request.url.include_query_params(page=p) }}">{{ p }}</a>,
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <td class="h2">{{ page }}</td>
+            {% for p in range(page + 1, page + 3) %}
+                <div>
+                    {% if p < total_pages %}
+                        <a href="{{ request.url.include_query_params(page=p) }}">{{ p }}</a>,
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <div>
+                {% if page < total_pages - 3 %}
+                <a href="{{ request.url.include_query_params(page=total_pages) }}">...{{ total_pages }}</a>
+                {% endif %}
+            </div>
+
+            <div>
+                {% if page < total_pages %}
+                <a href="{{ request.url.include_query_params(page=page + 1) }}">next >></a>
+                {% endif %}
+            </div>
+    </div>
+</div>

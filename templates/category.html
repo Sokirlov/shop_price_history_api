@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block body %}
+    <div class="d-flex flex-wrap">
+        {% for object in items %}
+            <a class="btn-outline-info category m-2 p-5" href="/{% if object.shop_id %}{{object.shop_id}}/{% endif %}{{object.id}}">
+                {{object.name}}
+            </a>
+        {% endfor %}
+    </div>
+{% endblock %}

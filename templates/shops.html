@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block head %}Shops{% endblock %}
+{% block body %}
+    <ul>
+        {% for object in items %}
+            <li><a href="/{{object.id}}">{{object.name}}</a></li>
+        {% endfor %}
+    </ul>
+{% endblock %}

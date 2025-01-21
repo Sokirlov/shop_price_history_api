@@ -1,0 +1,22 @@
+<div>
+<select id="pageSizeSelector">
+    <option value="10" {% if request.query_params.get('page_size') == '10' %}selected{% endif %}>10</option>
+    <option value="20" {% if request.query_params.get('page_size') == '20' %}selected{% endif %}>20</option>
+    <option value="50" {% if request.query_params.get('page_size') == '50' %}selected{% endif %}>50</option>
+    <option value="100" {% if request.query_params.get('page_size') == '100' %}selected{% endif %}>100</option>
+    <option value="200" {% if request.query_params.get('page_size') == '200' %}selected{% endif %}>200</option>
+</select>
+
+<script>
+    document.getElementById('pageSizeSelector').addEventListener('change', function () {
+        const pageSize = this.value;
+        const url = new URL(window.location.href);
+        // Update the `page_size` parameter in the URL
+        url.searchParams.set('page_size', pageSize);
+        // Reset `page` to 1 (optional, depends on your requirements)
+        url.searchParams.set('page', 1);
+        // Redirect to the updated URL
+        window.location.href = url.toString();
+    });
+</script>
+</div>
