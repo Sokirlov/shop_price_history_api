@@ -162,8 +162,8 @@ class Base(DeclarativeBase):
     @classmethod
     async def filter_by_(cls, **kwargs) -> dict:
         """
-        ordered_: Optional[list] = None,
-        related_: Optional[str] = None,
+        ordered: Optional[list] = None,
+        related: Optional[str] = None,
         limit: Optional[int] = 10,
         offset: Optional[int] = 0,
         :param kwargs:

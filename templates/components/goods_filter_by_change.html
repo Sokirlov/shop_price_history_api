@@ -1,0 +1,26 @@
+<div>
+на сторінці:
+<select id="onlyChangedSelector">
+    <option value="none" {% if not request.query_params.get('only_changed') %}selected{% endif %}>--</option>
+    <option value="0" {% if request.query_params.get('only_changed') == '0' %}selected{% endif %}>без змін</option>
+    <option value="1" {% if request.query_params.get('only_changed') == '1' %}selected{% endif %}>тільки із змінами</option>
+</select>
+
+<script>
+    document.getElementById('onlyChangedSelector').addEventListener('change', function () {
+        const only_changed = this.value;
+
+        const url = new URL(window.location.href);
+        // Update the `page_size` parameter in the URL
+        if(only_changed === "none"){
+            params_ = url.searchParams
+            params_.delete(only_changed)
+        }else{
+            url.searchParams.set('only_changed', only_changed);
+        }
+        // Reset `page` to 1 (optional, depends on your requirements)
+        // Redirect to the updated URL
+        window.location.href = url.toString();
+    });
+</script>
+</div>

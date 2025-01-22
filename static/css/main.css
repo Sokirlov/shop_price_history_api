@@ -1,8 +1,8 @@
 .category{
-            min-width: 150px;
-            width: calc(100% / 5 - 16px);
-            border: 1px solid;
-        }
+    min-width: 150px;
+    width: calc(100% / 5 - 16px);
+    border: 1px solid;
+}
 .footer{
     position: fixed;
     bottom: 0;
@@ -10,4 +10,16 @@
     padding: 10px;
     margin: 0 0 0 -15px;
     width: 100%;
+}
+.soldout{
+    opacity: 0.6;
+    color: #999999;
+}
+.goods-chart {
+    max-height: 200px;
+    max-width: 600px;
+}
+
+.sticky-top {
+    top: 40px !important;
 }

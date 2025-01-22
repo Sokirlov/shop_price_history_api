@@ -35,16 +35,6 @@
             })
         }
     </script>
-    <style>
-        .goods-chart {
-            max-height: 200px;
-            max-width: 600px;
-        }
-
-        .sticky-top {
-            top: 40px !important;
-        }
-    </style>
 {% endblock %}
 {% block body %}
     <table class="table">
@@ -63,7 +53,6 @@
                 <td><img src="{{ object.img_src }}" height="200px"/></td>
                 <td>{{ object.id }}</td>
                 <td class="name"><a href="{{ object.url }}" target="_blank">{{ object.name }}</a></td>
-                {#                <td></td>#}
                 <td>
                 {% if object.price_change > 0 %}
                 	{{ object.price_change }}&nbsp;|&nbsp;

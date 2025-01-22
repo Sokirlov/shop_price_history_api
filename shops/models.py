@@ -77,6 +77,8 @@ class Product(Base):
         packaging = props_.pop('packaging', None)
         in_stock = props_.pop('in_stock', False)
         img_src = props_.pop('img_src', None)
+        if price == 0.0:
+            in_stock = True
 
         async with AsyncSessionLocal() as session:
             result = await session.execute(
@@ -118,108 +120,18 @@ class Product(Base):
     @classmethod
     async def filter_by_(cls, **kwargs) -> dict:
 
-        # TODO add filter by change in  last and previous price
-        """
-        SELECT p.*, price_history.*,
-            ABS(price_history.last_price - price_history.prev_price) AS price_difference
+        if isinstance(kwargs.get("only_changed"), int):
+            filter_params = cls._filter_kwargs_by_atribute_(**kwargs)
+            base_query = select(cls).filter_by(**filter_params)
 
-        FROM products p
-            JOIN (SELECT pr.product_id,
-                   LAG(pr.price) OVER (PARTITION BY pr.product_id ORDER BY pr.created_at DESC) AS prev_price, pr.price AS last_price
-            FROM price pr) price_history
+            if kwargs.get('only_changed') == 0:
+                base_query = base_query.filter(cls.price_change == 0.0)
+            elif kwargs.get('only_changed') > 0:
+                base_query = base_query.filter(cls.price_change >= 1.0)
+                kwargs.update(ordered=[desc('price_change')])
 
-        ON price_history.product_id = p.id
-
-        WHERE p.category_id = 216 AND price_history.prev_price IS NOT NULL AND ABS(price_history.last_price - price_history.prev_price) <> 1
-
-        ORDER BY price_difference DESC;
-
-        """
-
-        if kwargs.get("only_changed"):
-            price_history = (
-                select(
-                    Price.product_id,
-                    func.lag(Price.price).over(
-                        partition_by=Price.product_id,
-                        order_by=Price.created_at.desc()
-                    ).label("prev_price"),
-                    Price.price.label("last_price")
-                )
-                .subquery()
-            )
-
-            base_query = (
-                select(Product)
-                # .join(Category, Category.id == Product.category_id)  # З'єднуємо таблиці Category і Product
-                .join(price_history, price_history.c.product_id == Product.id)  # З'єднуємо з price_history
-                .filter(
-                    Product.category_id == kwargs.get('category_id', 0),  # Фільтруємо по категорії
-                    price_history.c.prev_price.isnot(None),  # Перевіряємо наявність попередньої ціни
-                    func.abs(price_history.c.last_price - price_history.c.prev_price) != 1
-                )
-                .options(selectinload(Product.prices))  # Завантажуємо всі ціни для кожного продукту
-                .options(selectinload(Product.category))  # Завантажуємо всі ціни для категорії
-            )
-
-            print(f'\n\n\nQUERY -> {base_query.compile(compile_kwargs={"literal_binds": True})}\n\n\n')
-
-            # async with AsyncSessionLocal() as session:
-            #     objects = await session.execute(query)
-
-            # print('1111111111111111')
-            # return dict(page=0, page_size=0, total_items=0, total_pages=0, items=objects.unique().scalars().all())
-
-            # Виконання запиту
-            # results = query.all()
-            # if kwargs.get("only_changed"):
-            #     # Створюємо підзапит для отримання останніх двох записів цін для кожного продукту
-            #     subquery = (
-            #         select(
-            #             Price.product_id, Price.price, func.row_number().over(
-            #                 partition_by=Price.product_id,
-            #                 order_by=desc(Price.updated_at)
-            #             ).label("row_number")
-            #         ).subquery()
-            #     )
-            #
-            #     # Аліас для підзапиту
-            #     latest_price = aliased(subquery)
-            #
-            #     print(f'only_changed kwargs={kwargs}')
-            #     # отримуємо тільки параметри класа
-            #     query_ = cls._filter_kwargs_by_atribute_(**kwargs)
-            #
-            #     print(f'only_changed query_={query_}')
-            #     # Об'єднуємо з продуктами
-            #
-            #     price_subquery = (
-            #         select(Price.product_id).order_by(desc(Price.updated_at))
-            #         .where(Price.price > 0.0)  # Умови для вибору
-            #         .distinct()  # Виключення повторюваних product_id
-            #     ).subquery()
-            #
-            #     base_query = (
-            #         select(Product)
-            #         # .filter(Product.id.in_(price_subquery))
-            #         .filter_by(**query_)
-            #         .join(Product.prices)
-            #         .options(contains_eager(Product.prices))
-            #         .filter(
-            #
-            #         )
-            #         .join(latest_price, Product.id == latest_price.c.product_id)
-            #         .filter(latest_price.c.row_number.in_([1, 2]))  # Тільки останній та передостанній запис
-            #         .group_by(Product.id)
-            #         .having(func.count(distinct(latest_price.c.price)) > 1)  # Ціни повинні бути різними
-            #         .options(joinedload(Product.category))
-            #         .options(joinedload(Product.prices))
-            #     )
-            #     print(f' base query_ done')
-            #     # print("\nIS ONLY CHANGED PRODUCT FILTERS .. {}\n\n".format(base_query))
-            kwargs.update(related=None)
             kwargs.update(base_query=base_query)
-        #     print(f'kwargs -> {query.compile(compile_kwargs={"literal_binds": True})}')
+            print(f'kwargs -> {base_query.compile(compile_kwargs={"literal_binds": True})}')
 
         elif not kwargs.get("related"):
             kwargs.update(related='prices')
@@ -259,8 +171,11 @@ class Price(Base):
                     select(Price).filter(Price.product_id == product_id).order_by(desc('created_at'))
                 )
                 last_price = last_price.scalars().first()
+
                 if last_price:
-                    change_price = abs(price - last_price.price)
+                    change_price = abs(
+                        round(price - last_price.price, 2)
+                    )
                 else:
                     change_price = price
                 instance = cls(price=price, product_id=product_id)
