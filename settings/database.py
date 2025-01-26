@@ -136,7 +136,8 @@ class Base(DeclarativeBase):
             await session.commit()  # Коммітимо зміни
             for instance in instances:
                 await session.refresh(instance)
-            return instances
+
+        return instances
 
     @classmethod
     async def get_all_async(cls, related: Optional[str] = None) -> list:
@@ -150,6 +151,26 @@ class Base(DeclarativeBase):
 
         async with AsyncSessionLocal() as session:
             result = await session.execute(stmt)
+
+            try:
+                shops = result.scalars().all()
+            except Exception as e:
+                print('Exception', e)
+                shops = result.all()
+            print('get all shops', shops)
+            return shops
+    @classmethod
+    def get_all(cls, related: Optional[str] = None) -> list:
+
+        stmt = select(cls)
+        if related:
+            relation = getattr(cls, related, None)
+            if relation is None:
+                raise ValueError(f"Relationship '{related}' not found on model '{cls.__name__}'")
+            stmt = stmt.options(selectinload(relation))
+
+        with sessions_sync() as session:
+            result = session.execute(stmt)
 
             try:
                 shops = result.scalars().all()

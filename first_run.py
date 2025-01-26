@@ -1,10 +1,12 @@
+import asyncio
+
 import bcrypt
 from users.models import User
 
-def create_user(username, password):
+async def create_user(username, password):
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     print(f"hashed=>{type(hashed)}=>{hashed}")
-    admin = User.create(username=username,
+    admin = await User.create(username=username,
                         hash_password=hashed,
                         is_superuser=True,
                         is_active=True,)
@@ -13,4 +15,4 @@ def create_user(username, password):
 
 
 if __name__ == '__main__':
-    create_user('admin', "123456")
+    asyncio.run(create_user('admin', "123456"))

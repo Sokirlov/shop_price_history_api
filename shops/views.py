@@ -41,7 +41,7 @@ async def read_item(request: Request,
     offset = (page - 1) * page_size
     query = dict(
         category_id=item_id,
-        ordered=['in_stock', ],
+        ordered=['name', 'in_stock', ],
         related=['category', 'prices'],
         limit=page_size,
         offset=offset

@@ -13,13 +13,10 @@
         const url = new URL(window.location.href);
         // Update the `page_size` parameter in the URL
         if(only_changed === "none"){
-            params_ = url.searchParams
-            params_.delete(only_changed)
+            url.searchParams.delete("only_changed")
         }else{
             url.searchParams.set('only_changed', only_changed);
         }
-        // Reset `page` to 1 (optional, depends on your requirements)
-        // Redirect to the updated URL
         window.location.href = url.toString();
     });
 </script>

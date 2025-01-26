@@ -43,7 +43,8 @@
             <th>IMG</th>
             <th>ID</th>
             <th>НАЗВА</th>
-            <th>ЦІНА</th>
+            <th>ЦІНА (зміна) </th>
+            <th>ПАКУВАННЯ</th>
             <th>графік</th>
         </tr>
         </thead>
@@ -54,12 +55,14 @@
                 <td>{{ object.id }}</td>
                 <td class="name"><a href="{{ object.url }}" target="_blank">{{ object.name }}</a></td>
                 <td>
-                {% if object.price_change > 0 %}
-                	{{ object.price_change }}&nbsp;|&nbsp;
-                {% endif %}
+
                     {% if object.prices %}
-                        {{ object.prices.0.price }} грн / {{ object.packaging }}
+                        <span class="h4">{{ object.prices.0.price }} грн</span>
+                        <span class="text-black-50">({{ object.price_change }})</span>
                     {% endif %}
+                </td>
+                <td>
+                    {{ object.packaging }}
                 </td>
                 <td class="goods-chart">{% include 'components/price_chart.html' %}</td>
             </tr>

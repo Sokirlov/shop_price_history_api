@@ -7,7 +7,7 @@ from settings.config import settings
 class CreateCategorySchema(BaseModel):
     name: str
     url: str
-
+    shop_id: int
 
 class ShopCategorySchema(BaseModel):
     id: int
@@ -57,7 +57,20 @@ class PriceSchema(BaseModel):
     #     from_attributes = True
 
 
+
+
 class ProductCreateSchema(BaseModel):
+    name: str = Field(..., max_length=255)
+    url: Optional[str] = None
+    img_src: Optional[str] = None
+    packaging: Optional[str] = Field(None, max_length=50)
+    in_stock: bool = False
+    category_id: int
+    price: Optional[float] = 0.0
+
+
+
+class ProductResponseSchema(BaseModel):
     name: str = Field(..., max_length=255)
     url: Optional[str] = None
     img_src: Optional[str] = None

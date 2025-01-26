@@ -3,7 +3,8 @@ from fastapi import Query, APIRouter, HTTPException, Form
 
 from settings.pagination import PaginatedResponse
 from .models import Shop, Product, Category
-from .serializers import ShopSchema, ProductSchema, ShopCategorySchema, ProductCreateSchema
+from .serializers import ShopSchema, ProductSchema, ShopCategorySchema, ProductResponseSchema, CreateCategorySchema, \
+    ProductCreateSchema
 
 router = APIRouter()
 
@@ -25,6 +26,8 @@ async def create_shop(name: str = Form(),
     return item
 
 
+
+
 @router.get("/{item_id}", response_model=PaginatedResponse[ShopCategorySchema], description="Get shop category by id")
 async def get_prices(item_id: int,
                      page: int = Query(1, ge=1),
@@ -34,6 +37,27 @@ async def get_prices(item_id: int,
     results: dict = await Category.filter_by_(shop_id=item_id, limit=page_size, offset=offset)
     results['page'] = page
     return PaginatedResponse(**results)
+
+
+
+@router.post("/categories", response_model=list[ShopCategorySchema])
+async def create_categories(categories: list[CreateCategorySchema]):
+    print(f"categories={categories}")
+    data = [i.__dict__ for i in categories]
+    items = await Category.get_or_create_bulb(data)
+    return items
+
+
+
+@router.post("/products", response_model=list[ProductResponseSchema])
+async def create_products(products: list[ProductCreateSchema]):
+    print(f"create_products={type(products)}")
+    data = [i.__dict__ for i in products]
+    items = await Product.update_or_create_bulb(data)
+
+    return items
+
+
 
 
 @router.post("/{shop_id}", response_model=ShopCategorySchema)
@@ -66,7 +90,7 @@ async def read_item(category_id: int,
     return PaginatedResponse(**results)
 
 
-@router.post("/{shop_id}/{category_id}", response_model=ProductCreateSchema)
+@router.post("/{shop_id}/{category_id}", response_model=ProductResponseSchema)
 async def read_item(category_id: int,
                     name: str = Form(),
                     url: str = Form(),
