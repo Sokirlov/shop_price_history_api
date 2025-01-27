@@ -10,7 +10,7 @@ from fastadmin import (SqlAlchemyModelAdmin, register, action, DashboardWidgetAd
                        register_widget, WidgetType)
 
 from settings.database import AsyncSessionLocal
-from .models import User
+from users.models import User
 
 import os
 from dotenv import load_dotenv

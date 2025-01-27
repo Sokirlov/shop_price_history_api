@@ -1,7 +1,10 @@
 from datetime import datetime
+from typing import Sequence
+
 from sqlalchemy import String, ForeignKey, select, cast, Date, and_, desc, tuple_, update, case
 from sqlalchemy.orm import relationship, Mapped, mapped_column, aliased
-from settings.database import Base, AsyncSessionLocal
+from settings.database import Base, AsyncSessionLocal, get_session
+
 
 # TODO рефакторити код, винести в методах "..._bulb" спільний функціонал
 #  по розділеню на існуючі та нові обʼєкти. Виправити оновлення price_change,
@@ -35,30 +38,6 @@ class Category(Base):
     # Зв'язок з
     shop: Mapped["Shop"] = relationship("Shop", back_populates="categories")
     products = relationship("Product", back_populates="category", cascade="all, delete")
-
-    @classmethod
-    async def get_or_create_bulb(cls, categorys: list[dict[str, str | int]]):
-        category_tuples = [(i['name'], i['url'], i['shop_id']) for i in categorys]
-        results_category = []
-        async with AsyncSessionLocal() as session:
-            result = await session.execute(
-                select(Category).where(
-                    tuple_(Category.name, Category.url, Category.shop_id,).in_(category_tuples)
-                )
-            )
-            existing_categories = result.scalars().all()
-            results_category.extend(existing_categories)
-            existing_categories_url = (i.url for i in existing_categories)
-
-            to_create = [
-                Category(shop_id=category_['shop_id'], name=category_['name'], url=category_['url'])
-                for category_ in categorys
-                if category_['url'] not in existing_categories_url
-            ]
-            session.add_all(to_create)
-            await session.commit()
-            results_category.extend(to_create)
-        return results_category
 
 
     def __str__(self):
@@ -168,43 +147,57 @@ class Product(Base):
         return results
 
     @classmethod
+    async def objects_by_query(cls, query, **kwargs) -> Sequence:
+
+        session  = kwargs.pop("session", get_session())
+        result = await session.execute(
+            select(cls).where(query)
+        )
+        results = result.scalars().all()
+        return results
+
+
+    @classmethod
     async def update_or_create_bulb(cls, products: list[dict[str, str | int]]):
         print('bulb products start')
         # async with AsyncSessionLocal() as session:
-        product_tuples = [(i['name'], i['url'], i['category_id']) for i in products]
-        results_product = []
+        # product_tuples = [(i['name'], i['url'], i['category_id']) for i in products]
+        # results_product = []
+        #
+        #
+        # async with AsyncSessionLocal() as session:
+        #     result = await session.execute(
+        #         select(Product).where(
+        #             tuple_(Product.name, Product.url, Product.category_id, ).in_(product_tuples)
+        #         )
+        #     )
+        #     existing_categories = result.scalars().all()
+        #     results_product.extend(existing_categories)
+        #
+        #     existing_product_url = [i.url for i in existing_categories]
+        #
+        #     print(f'[BULB PRODUCTS] product:{len(products)} == existing_product_url:{len(existing_product_url)}]')
+        #
+        #     to_create = [
+        #         Product(**cls._filter_kwargs_by_atribute_(**product))
+        #         for product in products
+        #         if product['url'] not in existing_product_url
+        #     ]
+        #     print(f'bulb products create, {len(to_create)} | {to_create}')
+        #     session.add_all(to_create)
+        #     await session.commit()
+        #     results_product.extend(to_create)
+        #     print("prepea price")
+        results_product = await super().get_or_create_bulb(products)
 
+        prices = [dict(price=product['price'], product_id=product_.id)
+                  for product in products
+                  for product_ in results_product
+                  if product_.url == product['url']
+        ]
 
-        async with AsyncSessionLocal() as session:
-            result = await session.execute(
-                select(Product).where(
-                    tuple_(Product.name, Product.url, Product.category_id, ).in_(product_tuples)
-                )
-            )
-            existing_categories = result.scalars().all()
-
-            results_product.extend(existing_categories)
-
-            existing_categories_url = (i.url for i in existing_categories)
-
-            to_create = [
-                Product(**cls._filter_kwargs_by_atribute_(**product))
-                for product in products
-                if product['url'] not in existing_categories_url
-            ]
-            session.add_all(to_create)
-            await session.commit()
-            results_product.extend(to_create)
-            print("prepea price")
-            prices = [
-                dict(price=product['price'], product_id=product_.id)
-                for product in products
-                for product_ in results_product
-                if product_.url == product['url']
-            ]
-
-            results_prices, differences = await Price.get_or_create_bulb(prices)
-            print('Price change', differences)
+        results_prices, differences = await Price.get_or_create_bulb(prices)
+        print('Price change', differences)
 
             # TODO оновлення price_change поля
             # stmt = (
