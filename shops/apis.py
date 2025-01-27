@@ -1,6 +1,7 @@
 from typing import Union, List
 from fastapi import Query, APIRouter, HTTPException, Form
 
+
 from settings.pagination import PaginatedResponse
 from .models import Shop, Product, Category
 from .serializers import ShopSchemaGET, ProductPricesSchemaGET, CategorySchemaGET, ProductSchemaGET, CategorySchemaPOST, \

@@ -3,12 +3,12 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import MetaData, func, create_engine, inspect
+from sqlalchemy import MetaData, func, create_engine, inspect, tuple_
 from sqlalchemy.future import select
 from sqlalchemy.orm import sessionmaker, selectinload, DeclarativeBase, Mapped, mapped_column, InstrumentedAttribute
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
-from .config import settings
+from settings.config import settings
 
 logging.basicConfig(
     # filename=logfile,
@@ -55,7 +55,10 @@ class Base(DeclarativeBase):
             for idx, c_name in enumerate(self.__table__.columns.keys()):
                 if idx < self.repr_cols_num or c_name in self.repr_cols:
                     col.append(f"{c_name}={getattr(self, c_name)!r}")
-            return f"\n<class:{self.__class__.__name__}\t|\t({',\t'.join(col)})>"
+
+            clas_name = "\n<class:{}\t|\t".format(self.__class__.__name__)
+            coll_in_ogject = "({})>".format(",\t".join(col))
+            return clas_name + coll_in_ogject
         return f'<class:{self.__class__.__name__}>'
 
     @classmethod
@@ -218,8 +221,8 @@ class Base(DeclarativeBase):
         count_query = select(func.count()).select_from(base_query.subquery())
         limited_query = base_query.limit(limit).offset(offset)
 
-        print(f'\ncount_query: {count_query.compile(compile_kwargs={'literal_binds': True})}\n\n'
-              f'limited_query: {limited_query.compile(compile_kwargs={'literal_binds': True})}\n\n')
+        # print(f'\ncount_query: {count_query.compile(compile_kwargs={'literal_binds': True})}\n\n'
+        #       f'limited_query: {limited_query.compile(compile_kwargs={'literal_binds': True})}\n\n')
 
         async with AsyncSessionLocal() as session:
             # Виконання запитів
@@ -233,6 +236,44 @@ class Base(DeclarativeBase):
         page_ = offset // limit
 
         return dict(page=page_, page_size=limit, total_items=total_items, total_pages=total_pages, items=items)
+
+    @classmethod
+    async def get_or_create_bulb(cls, objects_: list[dict[str, str | int]]) -> list:
+        try:
+            request_urls = [i['url'] for i in objects_]
+        except KeyError:
+            raise Exception(f"Invalid objects. Object must have 'name' and 'url' keys")
+
+        results_ = []
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(cls).where(
+                    cls.url.in_(request_urls)
+                )
+            )
+            existing_objects = result.scalars().all()
+            results_.extend(existing_objects)
+
+            existing_objects_url = [i.url for i in existing_objects]
+
+            to_create = [
+                cls(**cls._filter_kwargs_by_atribute_(**category_))
+                for category_ in objects_
+                if category_['url'] not in existing_objects_url
+            ]
+            print(f'request_objects_tuples: {len(request_urls)}\t|\t'
+                  f'Existing objects: {len(existing_objects)} objects\t|\t'
+                  f'To create {len(to_create)} objects')
+
+            print(f'\n\nrequest_objects_tuples: {len(request_urls)}\n|\n'
+                  f'Existing objects: {len(existing_objects)} objects\n|\n'
+                  f'To create {to_create} objects\n\n')
+
+
+            session.add_all(to_create)
+            await session.commit()
+            results_.extend(to_create)
+        return results_
 
 
 async def init_db():

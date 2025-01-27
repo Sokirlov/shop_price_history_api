@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastadmin import fastapi_app as admin_app
-from starlette.middleware.cors import CORSMiddleware
+# from starlette.middleware.cors import CORSMiddleware
 
 from shops.urls import router as shop_router
 from settings.config import settings
@@ -20,12 +20,11 @@ async def startup():
 app.mount("/admin", admin_app)
 app.mount("/static", settings.static, name="static")
 app.include_router(shop_router)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Дозволені джерела (наприклад, ваш фронтенд)
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],  # Які методи дозволено
-    allow_headers=["*"],  # Які заголовки дозволено
-)
-
+#
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["http://localhost:5173"],  # Дозволені джерела (наприклад, ваш фронтенд)
+#     allow_credentials=True,
+#     allow_methods=["GET", "POST", "PUT", "DELETE"],  # Які методи дозволено
+#     allow_headers=["*"],  # Які заголовки дозволено
+# )

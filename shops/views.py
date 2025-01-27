@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Query
 from fastapi.responses import HTMLResponse
 
 from settings.config import settings
-from .models import Shop, Category, Product
+from shops.models import Shop, Category, Product
 
 router = APIRouter()
 templates = settings.templates

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from .apis import router as products_router
-from .views import router as categories_router
+from shops.apis import router as products_router
+from shops.views import router as categories_router
 
 router = APIRouter()
 router.include_router(products_router, prefix="/api", tags=["apis"])

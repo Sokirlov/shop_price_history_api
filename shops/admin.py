@@ -1,7 +1,7 @@
 from fastadmin import SqlAlchemyModelAdmin, register, SqlAlchemyInlineModelAdmin
 
 from settings.database import AsyncSessionLocal
-from .models import Shop, Category, Product, Price
+from shops.models import Shop, Category, Product, Price
 
 @register(Shop, sqlalchemy_sessionmaker=AsyncSessionLocal)
 class ShopAdmin(SqlAlchemyModelAdmin):
