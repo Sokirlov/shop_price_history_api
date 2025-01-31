@@ -170,7 +170,6 @@ class Product(Base):
         results = result.scalars().all()
         return results
 
-
     @classmethod
     async def update_or_create_bulb(cls, products: list[dict[str, str | int]]):
         print('bulb products start')
@@ -233,6 +232,10 @@ class Product(Base):
             # await session.commit()
 
         return results_product
+
+    @hybrid_property
+    def lower_name(self):
+        return func.lower(self.name)
 
     def __str__(self):
         return f"{self.name}"
