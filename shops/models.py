@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Sequence
 
-from sqlalchemy import String, ForeignKey, select, cast, Date, and_, desc, tuple_, update, case
+from sqlalchemy import String, ForeignKey, select, cast, Date, and_, desc, tuple_, update, case, func
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, Mapped, mapped_column, aliased
 from settings.database import Base, AsyncSessionLocal, get_session
 
@@ -22,6 +23,10 @@ class Shop(Base):
     # Зв'язок з категоріями
     categories: Mapped[list["Category"]] = relationship("Category", back_populates="shop", cascade="all, delete-orphan")
 
+    @hybrid_property
+    def lower_name(self):
+        return func.lower(self.name)
+
     def __str__(self):
         return self.name
 
@@ -39,6 +44,9 @@ class Category(Base):
     shop: Mapped["Shop"] = relationship("Shop", back_populates="categories")
     products = relationship("Product", back_populates="category", cascade="all, delete")
 
+    @hybrid_property
+    def lower_name(self):
+        return func.lower(self.name)
 
     def __str__(self):
         return self.name

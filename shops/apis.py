@@ -1,6 +1,5 @@
 from typing import Union, List
-from fastapi import Query, APIRouter, HTTPException, Form
-
+from fastapi import Query, Request, APIRouter, HTTPException, Form
 
 from settings.pagination import PaginatedResponse
 from .models import Shop, Product, Category
@@ -11,8 +10,16 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[ShopSchemaGET])
-async def get_prices():
-    prices = await Shop.get_all_async()
+async def get_prices(request: Request):
+    if not request.query_params:
+        print('GET ={}'. format(request.query_params))
+        prices = await Shop.get_all_async()
+    else:
+        print('GET ={}'. format(request.query_params))
+        query_params = dict(request.query_params)
+        prices = await Shop.filter_by_(**query_params)
+        prices = prices.get('items')
+        print(f'{prices} prices')
     return prices
 
 
