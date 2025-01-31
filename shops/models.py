@@ -27,6 +27,12 @@ class Shop(Base):
     def lower_name(self):
         return func.lower(self.name)
 
+    @property
+    async def _filter_kwargs_by_atribute_(cls, **kwargs) -> dict:
+        fields_from_kwargs = super()._filter_kwargs_by_atribute_(**kwargs)
+        fields_from_kwargs['lower_name'] = fields_from_kwargs.pop('name')
+        return fields_from_kwargs
+
     def __str__(self):
         return self.name
 

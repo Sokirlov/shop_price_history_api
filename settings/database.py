@@ -81,15 +81,8 @@ class Base(DeclarativeBase):
         # Отримуємо набір імен усіх атрибутів моделі, які є колонками або relationship
         model_fields = {attr for attr, value in vars(cls).items() if isinstance(value, InstrumentedAttribute)}
         # Повертаємо тільки ті пари ключ-значення, які є в полях моделі
-        # return {key: value for key, value in kwargs.items() if key in model_fields}
-        fields_from_kwargs = {}
-        for key, value in kwargs.items():
-            if key in model_fields:
-                if key == 'name':
-                    fields_from_kwargs['lower_name'] = value
-                else:
-                    fields_from_kwargs[key] = value
-        return fields_from_kwargs
+        return {key: value for key, value in kwargs.items() if key in model_fields}
+
 
     @classmethod
     def validate_relationships(cls, relateds: list[str]) -> list:
