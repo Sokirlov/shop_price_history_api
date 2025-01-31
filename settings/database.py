@@ -1,9 +1,9 @@
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import MetaData, func, create_engine, inspect, tuple_
+from sqlalchemy import MetaData, func, create_engine, inspect, tuple_, DateTime
 from sqlalchemy.future import select
 from sqlalchemy.orm import sessionmaker, selectinload, DeclarativeBase, Mapped, mapped_column, InstrumentedAttribute
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -29,7 +29,7 @@ engine = create_engine(
 sessions_sync = sessionmaker(bind=engine)
 
 # Створення асинхронного двигуна
-async_engine = create_async_engine(settings.database_url_async, echo=False, future=True)
+async_engine = create_async_engine(settings.database_url_async, echo=False, future=True,)
 AsyncSessionLocal = sessionmaker(bind=async_engine, class_=AsyncSession, expire_on_commit=False)
 
 
@@ -40,8 +40,11 @@ async def get_session() -> AsyncSession:
 
 class Base(DeclarativeBase):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.now())
-    updated_at: Mapped[datetime] = mapped_column(default=datetime.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
+                                                 default=datetime.now(tz=timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
+                                                 default=datetime.now(tz=timezone.utc),
+                                                 onupdate=datetime.now(tz=timezone.utc))
 
     __abstract__ = True
     metadata = MetaData()
@@ -65,6 +68,7 @@ class Base(DeclarativeBase):
     def get_relationships(cls):
         return [(rel.key, rel.mapper.class_) for rel in inspect(cls).relationships]
 
+
     @classmethod
     def _filter_kwargs_by_atribute_(cls, **kwargs) -> dict:
         """
@@ -77,7 +81,15 @@ class Base(DeclarativeBase):
         # Отримуємо набір імен усіх атрибутів моделі, які є колонками або relationship
         model_fields = {attr for attr, value in vars(cls).items() if isinstance(value, InstrumentedAttribute)}
         # Повертаємо тільки ті пари ключ-значення, які є в полях моделі
-        return {key: value for key, value in kwargs.items() if key in model_fields}
+        # return {key: value for key, value in kwargs.items() if key in model_fields}
+        fields_from_kwargs = {}
+        for key, value in kwargs.items():
+            if key in model_fields:
+                if key == 'name':
+                    fields_from_kwargs['lower_name'] = value
+                else:
+                    fields_from_kwargs[key] = value
+        return fields_from_kwargs
 
     @classmethod
     def validate_relationships(cls, relateds: list[str]) -> list:
@@ -199,6 +211,7 @@ class Base(DeclarativeBase):
         related = kwargs.get('related')
 
         filter_params = cls._filter_kwargs_by_atribute_(**kwargs)
+        print(f'filter_params: {filter_params}')
         stmt = kwargs.get('base_query', select(cls).filter_by(**filter_params))
 
         if ordered:
@@ -214,6 +227,7 @@ class Base(DeclarativeBase):
             stmt = stmt.options(*relations)
 
         result = await cls._paginate_objects_(stmt, offset, limit)
+        print('[filter_by_]', result)
         return result
 
     @classmethod
