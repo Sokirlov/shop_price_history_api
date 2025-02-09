@@ -1,7 +1,5 @@
 import importlib
-import os
 import pkgutil
-from pathlib import Path
 
 from settings.config import BASE_DIR
 
