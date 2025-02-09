@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Sequence
 
 from sqlalchemy import String, ForeignKey, select, cast, Date, and_, desc, tuple_, update, case, func
@@ -74,6 +74,18 @@ class Product(Base):
     category = relationship("Category", back_populates="products")
     prices = relationship("Price", back_populates="product", cascade="all, delete",
                           order_by=lambda: desc(Price.updated_at))
+
+    @hybrid_property
+    def price(self):
+        return self.price_change
+
+    @price.setter
+    def price(self, price):
+        if self.price_change is None or self.price_change == 0.0:
+            self.price_change = price
+        else:
+            self.price_change = price - self.price_change
+        # print(f"[price.setter] PRICE = {self.price_change}")
 
     @staticmethod
     async def validate_change_price(session: AsyncSessionLocal, product_id: int, new_price: float) -> float:
@@ -172,64 +184,33 @@ class Product(Base):
 
     @classmethod
     async def update_or_create_bulb(cls, products: list[dict[str, str | int]]):
-        print('bulb products start')
-        # async with AsyncSessionLocal() as session:
-        # product_tuples = [(i['name'], i['url'], i['category_id']) for i in products]
-        # results_product = []
-        #
-        #
-        # async with AsyncSessionLocal() as session:
-        #     result = await session.execute(
-        #         select(Product).where(
-        #             tuple_(Product.name, Product.url, Product.category_id, ).in_(product_tuples)
-        #         )
-        #     )
-        #     existing_categories = result.scalars().all()
-        #     results_product.extend(existing_categories)
-        #
-        #     existing_product_url = [i.url for i in existing_categories]
-        #
-        #     print(f'[BULB PRODUCTS] product:{len(products)} == existing_product_url:{len(existing_product_url)}]')
-        #
-        #     to_create = [
-        #         Product(**cls._filter_kwargs_by_atribute_(**product))
-        #         for product in products
-        #         if product['url'] not in existing_product_url
-        #     ]
-        #     print(f'bulb products create, {len(to_create)} | {to_create}')
-        #     session.add_all(to_create)
-        #     await session.commit()
-        #     results_product.extend(to_create)
-        #     print("prepea price")
-        results_product = await super().get_or_create_bulb(products)
-
+        results_product = await cls.get_or_create_bulb(products)
         prices = [dict(price=product['price'], product_id=product_.id)
                   for product in products
                   for product_ in results_product
                   if product_.url == product['url']
         ]
+        await Price.get_or_create_bulb(prices)
 
-        results_prices, differences = await Price.get_or_create_bulb(prices)
-        print('Price change', differences)
-
-            # TODO оновлення price_change поля
-            # stmt = (
-            #     update(Product)
-            #     .where(Product.id.in_(differences.keys()))  # Вибираємо тільки потрібні продукти
-            #     .values(
-            #         price_change=case(
-            #             {product_id: price_change for product_id, price_change in differences.items()},
-            #             value=Product.id
-            #         )
-            #     )
-            # )
-            # print('stmt:', stmt.compile(compile_kwargs={'literal_binds': True}))
-            # await session.execute(stmt)
-            # # await session.commit()
-            # await session.refresh(results_product)
-
-            # session.add_all(prices)
-            # await session.commit()
+        today = datetime.today().date()
+        stmt = (
+            update(Product)
+            .filter(cast(Product.updated_at, Date) != today,)
+            .where(Product.id.in_([i['product_id'] for i in prices]))  # Вибираємо тільки потрібні продукти
+            .values(
+                price_change=case(
+                    {i['product_id']: i['price'] for i in prices},
+                    value=Product.id,
+                    # else_=Product.price_change,
+                ),
+                updated_at=datetime.now(timezone.utc),
+            )
+            .returning(Product.id)
+        )
+        # print('stmt:', stmt.compile(compile_kwargs={'literal_binds': True}))
+        async with AsyncSessionLocal() as session:
+            await session.execute(stmt)
+            await session.commit()
 
         return results_product
 
@@ -288,7 +269,7 @@ class Price(Base):
         subquery = (
             select(Price)
             .where(Price.product_id.in_(product_ids))
-            .order_by(Price.product_id, desc(Price.updated_at))
+            .order_by(desc(Price.updated_at))
             .limit(2)  # Отримати лише два записи
             .subquery()
         )
@@ -296,41 +277,43 @@ class Price(Base):
         # Аліас для підзапиту
         price_alias = aliased(Price, subquery)
 
+        stmt = select(price_alias.product_id, price_alias.price).order_by(price_alias.product_id, desc(price_alias.updated_at))
+        print(f"stmt:{stmt.compile(compile_kwargs={'literal_binds': True})}")
+
         # Основний запит
-        result = await session.execute(
-            select(price_alias.product_id, price_alias.price)
-            .order_by(price_alias.product_id, desc(price_alias.updated_at))
-        )
-
-
-        # Перетворення результатів у словник {product_id: [last_price, prev_price]}
-        prices = {}
-        for product_id, price in result:
-            if product_id not in prices:
-                prices[product_id] = []
-            prices[product_id].append(price)
-
-        # Обчислення різниці
-        differences = {}
-        for product_id, price_list in prices.items():
-            if len(price_list) == 2:
-                differences[product_id] = round(price_list[0] - price_list[1], 2)
-            else:
-                differences[product_id] = round(price_list[0], 2)
-
-        return differences
+        result = await session.execute(stmt)
+        #
+        # print(f'[GET Prices] {result}]')
+        # # Перетворення результатів у словник {product_id: [last_price, prev_price]}
+        # prices = dict().fromkeys(product_ids, [])
+        # for product_id, price in result:
+        #     print(f'build prices {product_id} == {price}')
+        #     if product_id not in prices.keys():
+        #         prices[product_id] = []
+        #     prices[product_id].append(price)
+        #
+        # # Обчислення різниці
+        # differences = {}
+        # for product_id, price_list in prices.items():
+        #     if len(price_list) == 2:
+        #         differences[product_id] = round(price_list[0] - price_list[1], 2)
+        #     else:
+        #         differences[product_id] = round(price_list[0], 2)
+        # print(differences)
+        return result
 
     @classmethod
     async def get_or_create_bulb(cls, prices: list[dict[str, str | int]]) -> tuple[list[Base], dict[int, float]]:
 
-        tody = datetime.today().date()
+        today = datetime.today().date()
         price_list = [i['product_id'] for i in prices]
 
         results_prices = []
         async with AsyncSessionLocal() as session:
+            # збираємо по списку додані сьогодні
             result = await session.execute(
                 select(Price).filter(
-                        cast(Price.created_at, Date) == tody,
+                        cast(Price.created_at, Date) == today,
                 ).where(
                     Price.product_id.in_(price_list)
                 )
@@ -338,8 +321,10 @@ class Price(Base):
             existing_prices = result.scalars().all()
 
             results_prices.extend(existing_prices)
+            # список існуючих обʼєктів
             existing_price_product_id = [i.product_id for i in existing_prices]
 
+            # обʼєкти які треба створити
             to_create = [
                 Price(product_id=price_['product_id'], price=price_['price'])
                 for price_ in prices
@@ -348,5 +333,6 @@ class Price(Base):
             session.add_all(to_create)
             await session.commit()
             results_prices.extend(to_create)
+
             differences = await cls.get_price_differences(session, price_list)
         return results_prices, differences

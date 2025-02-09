@@ -268,13 +268,13 @@ class Base(DeclarativeBase):
                 for category_ in objects_
                 if category_['url'] not in existing_objects_url
             ]
-            print(f'request_objects_tuples: {len(request_urls)}\t|\t'
-                  f'Existing objects: {len(existing_objects)} objects\t|\t'
-                  f'To create {len(to_create)} objects')
-
-            print(f'\n\nrequest_objects_tuples: {len(request_urls)}\n|\n'
-                  f'Existing objects: {len(existing_objects)} objects\n|\n'
-                  f'To create {to_create} objects\n\n')
+            # print(f'request_objects_tuples: {len(request_urls)}\t|\t'
+            #       f'Existing objects: {len(existing_objects)} objects\t|\t'
+            #       f'To create {len(to_create)} objects')
+            #
+            # print(f'\n\nrequest_objects_tuples: {len(request_urls)}\n|\n'
+            #       f'Existing objects: {len(existing_objects)} objects\n|\n'
+            #       f'To create {to_create} objects\n\n')
 
 
             session.add_all(to_create)

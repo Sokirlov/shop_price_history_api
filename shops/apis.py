@@ -50,7 +50,6 @@ async def get_prices(item_id: int,
 
 @router.post("/categories", response_model=list[CategorySchemaGET])
 async def create_categories(categories: list[CategorySchemaPOST]):
-    print(f"categories={categories}")
     data = [i.__dict__ for i in categories]
     items = await Category.get_or_create_bulb(data)
     return items
@@ -59,10 +58,8 @@ async def create_categories(categories: list[CategorySchemaPOST]):
 
 @router.post("/products", response_model=list[ProductSchemaGET])
 async def create_products(products: list[ProductSchemaPOST]):
-    print(f"create_products={type(products)}")
     data = [i.__dict__ for i in products]
     items = await Product.update_or_create_bulb(data)
-
     return items
 
 
