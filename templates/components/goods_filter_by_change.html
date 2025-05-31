@@ -2,8 +2,9 @@
 на сторінці:
 <select id="onlyChangedSelector">
     <option value="none" {% if not request.query_params.get('only_changed') %}selected{% endif %}>--</option>
-    <option value="0" {% if request.query_params.get('only_changed') == '0' %}selected{% endif %}>без змін</option>
-    <option value="1" {% if request.query_params.get('only_changed') == '1' %}selected{% endif %}>тільки із змінами</option>
+    <option value="no_change" {% if request.query_params.get('only_changed') == 'no_change' %}selected{% endif %}>без змін</option>
+    <option value="expensive" {% if request.query_params.get('only_changed') == 'expensive' %}selected{% endif %}>подорожчали</option>
+    <option value="cheaper" {% if request.query_params.get('only_changed') == 'cheaper' %}selected{% endif %}>подешевшали</option>
 </select>
 
 <script>

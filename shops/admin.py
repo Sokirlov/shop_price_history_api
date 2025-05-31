@@ -23,6 +23,12 @@ class CategoryAdmin(SqlAlchemyModelAdmin):
     ordering = ("-created_at",)
     search_fields = ("name",)
     readonly_fields = ("id", "created_at", "updated_at",)
+    list_display_widths ={
+        "id": "120px",
+        "shop": "120px",
+        "created_at": "150px",
+        "updated_at": "150px"
+    }
     fieldsets = (
         (None, {"fields": ("name", "url")}),
         ('Shop', {"fields": ("shop",)}),
@@ -44,6 +50,15 @@ class ProductAdmin(SqlAlchemyModelAdmin):
     ordering = ("-created_at",)
     readonly_fields = ("created_at", "updated_at")
     inlines = (PriceAdmin,)
+    list_display_widths = {
+        "id": "60px",
+        "name": "200px",
+        "url": "200px",
+        "price_change": "80px",
+        "created_at": "100px",
+        "updated_at": "100px",
+        "category": "80px"
+    }
     fieldsets = (
         (None, {"fields": ("name", "url", "category", "prices")}),
         # ('Price', {"fields": ("prices",)}),
@@ -57,6 +72,11 @@ class PriceAdmin(SqlAlchemyModelAdmin):
     list_display_links = ("id", "price")
     list_filter = ("created_at", "updated_at")
     readonly_fields = ("id", "created_at", "updated_at",)
+    list_display_widths = {
+        "id": "120px",
+        "price": "200px",
+        "product": "200px",
+    }
     fieldsets = (
         (None, {"fields": ("price", "product")}),
     )
