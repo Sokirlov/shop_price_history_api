@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Sequence
 
-from sqlalchemy import String, ForeignKey, select, cast, Date, and_, desc, tuple_, update, case, func
+from sqlalchemy import String, ForeignKey, select, cast, Date, and_, desc, tuple_, update, case, func, Numeric
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, Mapped, mapped_column, aliased
 from settings.database import Base, AsyncSessionLocal, get_session
@@ -61,13 +61,13 @@ class Category(Base):
 class Product(Base):
     """ Модель Товару """
     __tablename__ = "product"
-
     name: Mapped[str]
     url: Mapped[str | None]
     img_src: Mapped[str | None]
     packaging: Mapped[str | None] = mapped_column(String(50))
     in_stock: Mapped[bool] = mapped_column(default=False)
     category_id: Mapped[int] = mapped_column(ForeignKey("category.id", ondelete="CASCADE"))
+    last_price: Mapped[float | None] = mapped_column(default=0.0, nullable=True)
     price_change: Mapped[float | None] = mapped_column(default=0.0, nullable=True)
 
     # Зв'язок з категорією
@@ -81,11 +81,12 @@ class Product(Base):
 
     @price.setter
     def price(self, price):
-        if self.price_change is None or self.price_change == 0.0:
+        if not self.price_change or self.price_change is None or self.price_change == 0.0:
             self.price_change = price
+            print(f"[price.setter] PRICE = {self.price_change}")
         else:
-            self.price_change = price - self.price_change
-        # print(f"[price.setter] PRICE = {self.price_change}")
+            self.price_change = price - self.last_price
+
 
     @staticmethod
     async def validate_change_price(session: AsyncSessionLocal, product_id: int, new_price: float) -> float:
@@ -153,14 +154,19 @@ class Product(Base):
     @classmethod
     async def filter_by_(cls, **kwargs) -> dict:
 
-        if isinstance(kwargs.get("only_changed"), int):
+        print(f'Product, filter_by_{kwargs}')
+        if kwargs.get("only_changed"):
+
             filter_params = cls._filter_kwargs_by_atribute_(**kwargs)
             base_query = select(cls).filter_by(**filter_params)
 
-            if kwargs.get('only_changed') == 0:
-                base_query = base_query.filter(cls.price_change == 0.0)
-            elif kwargs.get('only_changed') > 0:
-                base_query = base_query.filter(cls.price_change >= 1.0)
+            if kwargs.get('only_changed') == 'no_change':
+                base_query = base_query.filter(cls.price_change == 0.0, cls.last_price > 0.0)
+            elif kwargs.get('only_changed') == 'expensive':
+                base_query = base_query.filter(cls.price_change > 0.0, cls.last_price > 0.0)
+                kwargs.update(ordered=[desc('price_change')])
+            elif kwargs.get('only_changed') == 'cheaper':
+                base_query = base_query.filter(cls.price_change < 0.0, cls.last_price > 0.0)
                 kwargs.update(ordered=[desc('price_change')])
 
             kwargs.update(base_query=base_query)
@@ -184,33 +190,42 @@ class Product(Base):
 
     @classmethod
     async def update_or_create_bulb(cls, products: list[dict[str, str | int]]):
-        results_product = await cls.get_or_create_bulb(products)
-        prices = [dict(price=product['price'], product_id=product_.id)
-                  for product in products
-                  for product_ in results_product
-                  if product_.url == product['url']
-        ]
-        await Price.get_or_create_bulb(prices)
+        results_product = await cls.get_or_create_bulb(products)  # return get and create objects
+        print('products', products)
 
-        today = datetime.today().date()
-        stmt = (
-            update(Product)
-            .filter(cast(Product.updated_at, Date) != today,)
-            .where(Product.id.in_([i['product_id'] for i in prices]))  # Вибираємо тільки потрібні продукти
-            .values(
-                price_change=case(
-                    {i['product_id']: i['price'] for i in prices},
-                    value=Product.id,
-                    # else_=Product.price_change,
-                ),
-                updated_at=datetime.now(timezone.utc),
+        prices_ = [
+            dict(price=product['price'], product_id=product_.id)
+            for product in products
+            for product_ in results_product
+            if product_.url == product['url']
+        ]
+        only_created = await Price.create_bulb(prices_)
+
+        if only_created:
+            product_ids = [i.product_id for i in only_created]
+            price_map = {i.product_id: i.price for i in only_created}
+            print(
+
             )
-            .returning(Product.id)
-        )
-        # print('stmt:', stmt.compile(compile_kwargs={'literal_binds': True}))
-        async with AsyncSessionLocal() as session:
-            await session.execute(stmt)
-            await session.commit()
+            stmt = (
+                update(Product)
+                .filter(Product.id.in_(product_ids))
+                .values(
+                    # Оновлюємо last_price на нову ціну
+                    last_price=case(price_map, value=Product.id),
+                    # Обчислюємо зміну ціни: нова ціна - поточна ціна в базі
+                    price_change=func.round(
+                        (case(price_map, value=Product.id) - func.coalesce(Product.last_price, 0)).cast(Numeric),
+                        2
+                    ),
+                    updated_at=datetime.now(timezone.utc),
+                )
+                .returning(Product.id)
+            )
+            print('[update_or_create_bulb] stmt:', stmt.compile(compile_kwargs={'literal_binds': True}))
+            async with AsyncSessionLocal() as session:
+                await session.execute(stmt)
+                await session.commit()
 
         return results_product
 
@@ -303,36 +318,28 @@ class Price(Base):
         return result
 
     @classmethod
-    async def get_or_create_bulb(cls, prices: list[dict[str, str | int]]) -> tuple[list[Base], dict[int, float]]:
+    async def create_bulb(cls, prices: list ) -> list["Price"]:
+        """ Return  only created objects """
 
         today = datetime.today().date()
-        price_list = [i['product_id'] for i in prices]
+        product_list = [i['product_id'] for i in prices]
 
-        results_prices = []
         async with AsyncSessionLocal() as session:
             # збираємо по списку додані сьогодні
             result = await session.execute(
-                select(Price).filter(
-                        cast(Price.created_at, Date) == today,
-                ).where(
-                    Price.product_id.in_(price_list)
-                )
+                select(Price.product_id)
+                .filter(cast(Price.created_at, Date) == today,)
+                .where(Price.product_id.in_(product_list))
             )
             existing_prices = result.scalars().all()
-
-            results_prices.extend(existing_prices)
-            # список існуючих обʼєктів
-            existing_price_product_id = [i.product_id for i in existing_prices]
 
             # обʼєкти які треба створити
             to_create = [
                 Price(product_id=price_['product_id'], price=price_['price'])
                 for price_ in prices
-                if price_['product_id'] not in existing_price_product_id
+                if price_['product_id'] not in existing_prices
             ]
             session.add_all(to_create)
             await session.commit()
-            results_prices.extend(to_create)
-
-            differences = await cls.get_price_differences(session, price_list)
-        return results_prices, differences
+        print(f'PRICE+> {to_create}')
+        return to_create

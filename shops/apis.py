@@ -96,7 +96,7 @@ async def read_item(category_id: int,
 
 
 @router.post("/{shop_id}/{category_id}", response_model=ProductSchemaGET)
-async def read_item(category_id: int,
+async def create_item(category_id: int,
                     name: str = Form(),
                     url: str = Form(),
                     img_src: str = Form(None),
