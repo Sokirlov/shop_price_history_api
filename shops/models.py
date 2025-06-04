@@ -190,7 +190,7 @@ class Product(Base):
 
     @classmethod
     async def update_or_create_bulb(cls, products: list[dict[str, str | int]]):
-        results_product = await cls.get_or_create_bulb(products)  # return get and create objects
+        results_product = await cls.get_or_create_bulb(products)  # returned get and create objects togather
         print('products', products)
 
         prices_ = [
@@ -204,9 +204,8 @@ class Product(Base):
         if only_created:
             product_ids = [i.product_id for i in only_created]
             price_map = {i.product_id: i.price for i in only_created}
-            print(
+            in_stock_map = {i.product_id: True if i.price == 0.0 else False  for i in only_created}
 
-            )
             stmt = (
                 update(Product)
                 .filter(Product.id.in_(product_ids))
@@ -218,6 +217,8 @@ class Product(Base):
                         (case(price_map, value=Product.id) - func.coalesce(Product.last_price, 0)).cast(Numeric),
                         2
                     ),
+                    # оновлюємо статус товару
+                    in_stock=case(in_stock_map, value=Product.id),
                     updated_at=datetime.now(timezone.utc),
                 )
                 .returning(Product.id)
