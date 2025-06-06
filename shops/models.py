@@ -173,9 +173,11 @@ class Product(Base):
         elif kwargs.get("ordered"):
             kwargs.update(ordered=kwargs.get("ordered"))
 
+        # kwargs = {k:v for k,v in kwargs.items() if v is not None}
         print("kwargs", kwargs)
 
         results = await super().filter_by_(**kwargs)
+
         return results
 
     @classmethod

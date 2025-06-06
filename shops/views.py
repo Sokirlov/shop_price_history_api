@@ -37,14 +37,24 @@ async def read_item(request: Request,
 async def read_item(
         request: Request, item_id: int|str,
         page: int = Query(1, ge=1),
-        page_size: int = Query(100, ge=1),
+        page_size: int = Query(30, ge=1),
         only_changed: str = Query(None, description="cheaper, expensive, no_change"),
         ordered: str = Query(None),
         direction: str = Query(None),
 ):
     offset = (page - 1) * page_size
 
-    if item_id == 'only_changed':
+    if isinstance(item_id, int):
+        query = dict(
+            category_id=int(item_id),
+            ordered=[ordered, ] if ordered else ['in_stock', 'name', ],
+            related=['category', 'prices'],
+            only_changed=only_changed,
+            limit=page_size,
+            offset=offset,
+            direction=direction
+        )
+    else:
         query = dict(
             ordered=[ordered, ] if ordered else ['in_stock', 'name', ],
             related=['category', 'prices'],
@@ -53,17 +63,6 @@ async def read_item(
             offset=offset,
             direction=direction
         )
-    else:
-        query = dict(
-            category_id=item_id,
-            ordered=[ordered, ] if ordered else ['in_stock', 'name', ],
-            related=['category', 'prices'],
-            only_changed=only_changed,
-            limit=page_size,
-            offset=offset,
-            direction=direction
-        )
-
     objects = await Product.filter_by_(**query)
     objects["page"] = page
     return templates.TemplateResponse(request=request, name="goods.html", context={"title": "Goods", **objects})
