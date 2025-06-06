@@ -43,8 +43,8 @@ async def read_item(
         direction: str = Query(None),
 ):
     offset = (page - 1) * page_size
-
-    if isinstance(item_id, int):
+    try:
+        item_id = int(item_id)
         query = dict(
             category_id=int(item_id),
             ordered=[ordered, ] if ordered else ['in_stock', 'name', ],
@@ -54,7 +54,7 @@ async def read_item(
             offset=offset,
             direction=direction
         )
-    else:
+    except ValueError:
         query = dict(
             ordered=[ordered, ] if ordered else ['in_stock', 'name', ],
             related=['category', 'prices'],
