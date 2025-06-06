@@ -1,8 +1,6 @@
-
-
+import os
 import bcrypt
 import datetime
-
 
 from pydantic import ValidationError
 from sqlalchemy import select, func
@@ -11,9 +9,8 @@ from fastadmin import (SqlAlchemyModelAdmin, register, action, DashboardWidgetAd
 
 from settings.database import AsyncSessionLocal
 from users.models import User
-
-import os
 from dotenv import load_dotenv
+
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)

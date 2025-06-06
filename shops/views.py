@@ -34,26 +34,37 @@ async def read_item(request: Request,
 
 
 @router.get("/{shop_id}/{item_id}", response_class=HTMLResponse)
-async def read_item(request: Request,
-                    item_id: int,
-                    page: int = Query(1, ge=1),
-                    page_size: int = Query(30, ge=1),
-                    only_changed: str = Query(None, description="cheaper, expensive, no_change")):
+async def read_item(
+        request: Request, item_id: int|str,
+        page: int = Query(1, ge=1),
+        page_size: int = Query(100, ge=1),
+        only_changed: str = Query(None, description="cheaper, expensive, no_change"),
+        ordered: str = Query(None),
+        direction: str = Query(None),
+):
     offset = (page - 1) * page_size
-    query = dict(
-        category_id=item_id,
-        ordered=['in_stock', 'name',],
-        related=['category', 'prices'],
-        only_changed=only_changed,
-        limit=page_size,
-        offset=offset
-    )
+
+    if item_id == 'only_changed':
+        query = dict(
+            ordered=[ordered, ] if ordered else ['in_stock', 'name', ],
+            related=['category', 'prices'],
+            only_changed=only_changed if only_changed else "expensive",
+            limit=page_size,
+            offset=offset,
+            direction=direction
+        )
+    else:
+        query = dict(
+            category_id=item_id,
+            ordered=[ordered, ] if ordered else ['in_stock', 'name', ],
+            related=['category', 'prices'],
+            only_changed=only_changed,
+            limit=page_size,
+            offset=offset,
+            direction=direction
+        )
 
     objects = await Product.filter_by_(**query)
-    # print('objects', objects)
     objects["page"] = page
-    # for k, v in objects.items():
-    #     print(f'{k}:{v}')
-    return templates.TemplateResponse(request=request,
-                                      name="goods.html",
-                                      context={"title": "Goods", **objects})
+    return templates.TemplateResponse(request=request, name="goods.html", context={"title": "Goods", **objects})
+

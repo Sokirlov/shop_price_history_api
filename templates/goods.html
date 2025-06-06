@@ -34,6 +34,15 @@
                 }
             })
         }
+
+        function toggleOrder(column) {
+            const url = new URL(window.location.href);
+            const currentOrder = url.searchParams.get('direction');
+            const newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+            url.searchParams.set('direction', newOrder);
+            url.searchParams.set('ordered', column);
+            window.location.href = url.toString(); // Переходимо на оновлену URL
+        }
     </script>
 {% endblock %}
 {% block body %}
@@ -42,8 +51,11 @@
         <tr>
             <th>IMG</th>
             <th>ID</th>
-            <th>НАЗВА</th>
-            <th>ЦІНА (зміна) </th>
+            <th><a href="#" onclick="toggleOrder('name')">НАЗВА</a></th>
+            <th>
+                <a href="#" onclick="toggleOrder('last_price')">ЦІНА</a> &nbsp;
+                <a href="#" onclick="toggleOrder('price_change')">(зміна)</a>
+            </th>
             <th>ПАКУВАННЯ</th>
             <th>графік</th>
         </tr>

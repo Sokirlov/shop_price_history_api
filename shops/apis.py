@@ -3,8 +3,8 @@ from fastapi import Query, Request, APIRouter, HTTPException, Form
 
 from settings.pagination import PaginatedResponse
 from .models import Shop, Product, Category
-from .serializers import ShopSchemaGET, ProductPricesSchemaGET, CategorySchemaGET, ProductSchemaGET, CategorySchemaPOST, \
-    ProductSchemaPOST
+from .serializers import (ShopSchemaGET, ProductPricesSchemaGET, CategorySchemaGET, ProductSchemaGET,
+                          CategorySchemaPOST, ProductSchemaPOST)
 
 router = APIRouter()
 

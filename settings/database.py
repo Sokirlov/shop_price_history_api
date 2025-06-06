@@ -40,15 +40,11 @@ async def get_session() -> AsyncSession:
 
 class Base(DeclarativeBase):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
-                                                 default=datetime.now(tz=timezone.utc))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
-                                                 default=datetime.now(tz=timezone.utc),
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(tz=timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(tz=timezone.utc),
                                                  onupdate=datetime.now(tz=timezone.utc))
-
     __abstract__ = True
     metadata = MetaData()
-
     repr_cols_num = 4
     repr_cols = tuple()
 
@@ -68,7 +64,6 @@ class Base(DeclarativeBase):
     def get_relationships(cls):
         return [(rel.key, rel.mapper.class_) for rel in inspect(cls).relationships]
 
-
     @classmethod
     def _filter_kwargs_by_atribute_(cls, **kwargs) -> dict:
         """
@@ -82,7 +77,6 @@ class Base(DeclarativeBase):
         model_fields = {attr for attr, value in vars(cls).items() if isinstance(value, InstrumentedAttribute)}
         # Повертаємо тільки ті пари ключ-значення, які є в полях моделі
         return {key: value for key, value in kwargs.items() if key in model_fields}
-
 
     @classmethod
     def validate_relationships(cls, relateds: list[str]) -> list:
@@ -167,6 +161,7 @@ class Base(DeclarativeBase):
                 shops = result.all()
             print('get all shops', shops)
             return shops
+
     @classmethod
     def get_all(cls, related: Optional[str] = None) -> list:
 
@@ -204,7 +199,7 @@ class Base(DeclarativeBase):
         related = kwargs.get('related')
 
         filter_params = cls._filter_kwargs_by_atribute_(**kwargs)
-        print(f'filter_params: {filter_params}')
+        # print(f'filter_params: {filter_params}')
         stmt = kwargs.get('base_query', select(cls).filter_by(**filter_params))
 
         if ordered:
@@ -220,7 +215,7 @@ class Base(DeclarativeBase):
             stmt = stmt.options(*relations)
 
         result = await cls._paginate_objects_(stmt, offset, limit)
-        print('[filter_by_]', result)
+        # print('[filter_by_]', result)
         return result
 
     @classmethod
@@ -260,23 +255,12 @@ class Base(DeclarativeBase):
             )
             existing_objects = result.scalars().all()
             results_.extend(existing_objects)
-
             existing_objects_url = [i.url for i in existing_objects]
-
             to_create = [
                 cls(**cls._filter_kwargs_by_atribute_(**category_))
                 for category_ in objects_
                 if category_['url'] not in existing_objects_url
             ]
-            # print(f'request_objects_tuples: {len(request_urls)}\t|\t'
-            #       f'Existing objects: {len(existing_objects)} objects\t|\t'
-            #       f'To create {len(to_create)} objects')
-            #
-            # print(f'\n\nrequest_objects_tuples: {len(request_urls)}\n|\n'
-            #       f'Existing objects: {len(existing_objects)} objects\n|\n'
-            #       f'To create {to_create} objects\n\n')
-
-
             session.add_all(to_create)
             await session.commit()
             results_.extend(to_create)

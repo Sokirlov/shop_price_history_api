@@ -19,5 +19,3 @@ def import_admin_modules():
                 print(f"Імпортовано: {module_info.name}")
             except Exception as e:
                 print(f"Помилка імпорту {module_info.name}: {e}")
-
-

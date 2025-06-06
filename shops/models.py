@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Sequence
 
-from sqlalchemy import String, ForeignKey, select, cast, Date, and_, desc, tuple_, update, case, func, Numeric
+from sqlalchemy import String, ForeignKey, select, cast, Date, and_, desc, asc, tuple_, update, case, func, Numeric
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, Mapped, mapped_column, aliased
 from settings.database import Base, AsyncSessionLocal, get_session
@@ -12,7 +12,6 @@ from settings.database import Base, AsyncSessionLocal, get_session
 #  спростити та зменшити кількість запитів до БД
 
 
-
 class Shop(Base):
     """ Модель Магазину """
     __tablename__ = "shops"
@@ -21,7 +20,8 @@ class Shop(Base):
     url: Mapped[str | None]
 
     # Зв'язок з категоріями
-    categories: Mapped[list["Category"]] = relationship("Category", back_populates="shop", cascade="all, delete-orphan")
+    categories: Mapped[list["Category"]] = relationship(
+        "Category", back_populates="shop", cascade="all, delete-orphan")
 
     @hybrid_property
     def lower_name(self):
@@ -86,7 +86,6 @@ class Product(Base):
             print(f"[price.setter] PRICE = {self.price_change}")
         else:
             self.price_change = price - self.last_price
-
 
     @staticmethod
     async def validate_change_price(session: AsyncSessionLocal, product_id: int, new_price: float) -> float:
@@ -154,38 +153,29 @@ class Product(Base):
     @classmethod
     async def filter_by_(cls, **kwargs) -> dict:
 
-        print(f'Product, filter_by_{kwargs}')
+        change = {
+            "no_change": [cls.price_change == 0.0, cls.last_price > 0.0],
+            "expensive": [cls.price_change > 0.0, cls.last_price > 0.0],
+            "cheaper": [cls.price_change < 0.0, cls.last_price > 0.0],
+        }
+
         if kwargs.get("only_changed"):
-
             filter_params = cls._filter_kwargs_by_atribute_(**kwargs)
-            base_query = select(cls).filter_by(**filter_params)
-
-            if kwargs.get('only_changed') == 'no_change':
-                base_query = base_query.filter(cls.price_change == 0.0, cls.last_price > 0.0)
-            elif kwargs.get('only_changed') == 'expensive':
-                base_query = base_query.filter(cls.price_change > 0.0, cls.last_price > 0.0)
-                kwargs.update(ordered=[desc('price_change')])
-            elif kwargs.get('only_changed') == 'cheaper':
-                base_query = base_query.filter(cls.price_change < 0.0, cls.last_price > 0.0)
-                kwargs.update(ordered=[desc('price_change')])
-
+            base_query = select(cls).filter_by(**filter_params).filter(*change.get(kwargs["only_changed"]))
             kwargs.update(base_query=base_query)
-            # print(f'kwargs -> {base_query.compile(compile_kwargs={"literal_binds": True})}')
-
+            print("kwargs", kwargs)
         elif not kwargs.get("related"):
             kwargs.update(related='prices')
 
+        if kwargs.get("direction") == "desc" and kwargs.get("ordered"):
+            kwargs.update(ordered=[desc(i) for i in kwargs.get("ordered")])
+
+        elif kwargs.get("ordered"):
+            kwargs.update(ordered=kwargs.get("ordered"))
+
+        print("kwargs", kwargs)
+
         results = await super().filter_by_(**kwargs)
-        return results
-
-    @classmethod
-    async def objects_by_query(cls, query, **kwargs) -> Sequence:
-
-        session  = kwargs.pop("session", get_session())
-        result = await session.execute(
-            select(cls).where(query)
-        )
-        results = result.scalars().all()
         return results
 
     @classmethod
@@ -204,7 +194,7 @@ class Product(Base):
         if only_created:
             product_ids = [i.product_id for i in only_created]
             price_map = {i.product_id: i.price for i in only_created}
-            in_stock_map = {i.product_id: True if i.price == 0.0 else False  for i in only_created}
+            in_stock_map = {i.product_id: True if i.price == 0.0 else False for i in only_created}
 
             stmt = (
                 update(Product)
@@ -292,34 +282,18 @@ class Price(Base):
 
         # Аліас для підзапиту
         price_alias = aliased(Price, subquery)
-
-        stmt = select(price_alias.product_id, price_alias.price).order_by(price_alias.product_id, desc(price_alias.updated_at))
+        stmt = (
+            select(price_alias.product_id, price_alias.price)
+            .order_by(price_alias.product_id, desc(price_alias.updated_at))
+        )
         print(f"stmt:{stmt.compile(compile_kwargs={'literal_binds': True})}")
 
         # Основний запит
         result = await session.execute(stmt)
-        #
-        # print(f'[GET Prices] {result}]')
-        # # Перетворення результатів у словник {product_id: [last_price, prev_price]}
-        # prices = dict().fromkeys(product_ids, [])
-        # for product_id, price in result:
-        #     print(f'build prices {product_id} == {price}')
-        #     if product_id not in prices.keys():
-        #         prices[product_id] = []
-        #     prices[product_id].append(price)
-        #
-        # # Обчислення різниці
-        # differences = {}
-        # for product_id, price_list in prices.items():
-        #     if len(price_list) == 2:
-        #         differences[product_id] = round(price_list[0] - price_list[1], 2)
-        #     else:
-        #         differences[product_id] = round(price_list[0], 2)
-        # print(differences)
         return result
 
     @classmethod
-    async def create_bulb(cls, prices: list ) -> list["Price"]:
+    async def create_bulb(cls, prices: list) -> list["Price"]:
         """ Return  only created objects """
 
         today = datetime.today().date()
@@ -329,7 +303,7 @@ class Price(Base):
             # збираємо по списку додані сьогодні
             result = await session.execute(
                 select(Price.product_id)
-                .filter(cast(Price.created_at, Date) == today,)
+                .filter(cast(Price.created_at, Date) == today, )
                 .where(Price.product_id.in_(product_list))
             )
             existing_prices = result.scalars().all()
