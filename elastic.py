@@ -1,14 +1,11 @@
 from elasticsearch.helpers import async_bulk
-from elasticsearch import Elasticsearch, AsyncElasticsearch
 
 from shops.models import Product
 
-# es = Elasticsearch("http://localhost:9200")
-es = AsyncElasticsearch("http://elasticsearch:9200")
-if not es.ping():
-    raise ValueError("Elasticsearch не відповідає")
+async def create_index(es):
+    if not es.ping():
+        raise ValueError("Elasticsearch не відповідає")
 
-async def create_index():
     exists = await es.indices.exists(index="products")
     if not exists:
         await es.indices.create(index="products", body={
@@ -48,10 +45,7 @@ async def create_index():
         })
 
 
-async def index_products_from_db():
-    # result = await db.execute(select(Product))
-    # async with AsyncSessionLocal() as session:
-
+async def index_products_from_db(es):
     products = await Product.get_all_async()
 
     print(f"I have {len(products)} products")
@@ -71,17 +65,3 @@ async def index_products_from_db():
     ]
 
     await async_bulk(es, actions)
-
-
-# def index_products_from_db(db: Session):
-#     products = db.query(Product).all()
-#     print(f"I have {len(products)} products")
-#     for product in products:
-#         doc = {
-#             "id": product.id,
-#             "name": product.name,
-#             "last_price": product.last_price,
-#             "price_change": product.price_change,
-#         }
-#         es.index(index="products", id=product.id, document=doc)
-#         print(f'Updated {product.id}')
