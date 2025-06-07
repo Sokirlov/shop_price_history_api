@@ -1,3 +1,5 @@
+from typing import Optional
+
 from elasticsearch import AsyncElasticsearch
 from fastapi import FastAPI
 from fastadmin import fastapi_app as admin_app
@@ -14,7 +16,7 @@ import_admin_modules()
 
 
 app = FastAPI()
-
+es: Optional[AsyncElasticsearch] = None
 @app.on_event("startup")
 async def startup():
     from users.models import User
@@ -22,16 +24,22 @@ async def startup():
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    await create_index()
+    global es
+    es = AsyncElasticsearch("http://elasticsearch:9200")
+
+    await create_index(es)
     # await index_products_from_db()
 
+@app.on_event("shutdown")
+async def shutdown_event():
+    await es.close()
 
 app.mount("/admin", admin_app)
 app.mount("/static", settings.static, name="static")
 
-@app.post("/reindex")
+@app.get("/reindex")
 async def reindex_products():
-    await index_products_from_db()
+    await index_products_from_db(es)
     return {"status": "done"}
 
 app.include_router(shop_router)
