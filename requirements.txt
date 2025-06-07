@@ -1,0 +1,10 @@
+fastapi~=0.115.6
+fastadmin~=0.2.19
+SQLAlchemy~=2.0.37
+pydantic~=2.10.5
+bcrypt~=4.2.1
+python-dotenv~=1.0.1
+alembic~=1.14.1
+pydantic-settings~=2.7.1
+starlette~=0.41.3
+elasticsearch~=8.18.1
