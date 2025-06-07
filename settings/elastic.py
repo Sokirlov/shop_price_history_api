@@ -70,4 +70,4 @@ async def index_products_from_db(es):
 
         await async_bulk(es, actions)
         print(f'Updated {i} products')
-        await sleep(0.1)
+        await sleep(0.5)
