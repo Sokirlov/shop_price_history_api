@@ -11,6 +11,8 @@ from settings.service import import_admin_modules
 from settings.database import async_engine, Base
 
 import_admin_modules()
+
+es = AsyncElasticsearch("http://elasticsearch:9200")
 app = FastAPI()
 
 @app.on_event("startup")
@@ -20,7 +22,6 @@ async def startup():
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    es = AsyncElasticsearch("http://elasticsearch:9200")
     await create_index(es)
     await index_products_from_db(es)
 
