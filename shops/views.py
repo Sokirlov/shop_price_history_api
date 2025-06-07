@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Query
 from fastapi.responses import HTMLResponse
 from sqlalchemy import desc
 
-from main import es
+from settings.elastic import es
 from settings.config import settings
 from shops.models import Shop, Category, Product
 

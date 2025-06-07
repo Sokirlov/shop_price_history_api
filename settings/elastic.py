@@ -1,8 +1,12 @@
+from elasticsearch import AsyncElasticsearch
 from elasticsearch.helpers import async_bulk
 
 from shops.models import Product
 
-async def create_index(es):
+
+es = AsyncElasticsearch("http://elasticsearch:9200")
+
+async def create_index():
     if not es.ping():
         raise ValueError("Elasticsearch не відповідає")
 
@@ -45,7 +49,7 @@ async def create_index(es):
         })
 
 
-async def index_products_from_db(es):
+async def index_products_from_db():
     products = await Product.get_all_async()
 
     print(f"I have {len(products)} products")

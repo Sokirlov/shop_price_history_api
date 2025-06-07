@@ -2,17 +2,17 @@ from elasticsearch import AsyncElasticsearch
 from fastapi import FastAPI
 from fastadmin import fastapi_app as admin_app
 
-from elastic import create_index, index_products_from_db
 # from starlette.middleware.cors import CORSMiddleware
 
 from shops.urls import router as shop_router
 from settings.config import settings
 from settings.service import import_admin_modules
+from settings.elastic import create_index, index_products_from_db
 from settings.database import async_engine, Base
 
 import_admin_modules()
 
-es = AsyncElasticsearch("http://elasticsearch:9200")
+
 app = FastAPI()
 
 @app.on_event("startup")
@@ -22,8 +22,8 @@ async def startup():
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    await create_index(es)
-    await index_products_from_db(es)
+    await create_index()
+    await index_products_from_db()
 
 
 app.mount("/admin", admin_app)
