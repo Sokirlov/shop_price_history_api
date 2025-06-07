@@ -5,11 +5,8 @@ from shops.models import Product
 
 
 
-
 async def create_index():
     es = AsyncElasticsearch("http://elasticsearch:9200")
-    if not es.ping():
-        raise ValueError("Elasticsearch не відповідає")
 
     exists = await es.indices.exists(index="products")
     if not exists:
