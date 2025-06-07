@@ -4,7 +4,7 @@ from elasticsearch import Elasticsearch, AsyncElasticsearch
 from shops.models import Product
 
 # es = Elasticsearch("http://localhost:9200")
-es = AsyncElasticsearch("http://localhost:9200")
+es = AsyncElasticsearch("http://elasticsearch:9200")
 if not es.ping():
     raise ValueError("Elasticsearch не відповідає")
 
