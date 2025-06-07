@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request, Query
 from fastapi.responses import HTMLResponse
 from sqlalchemy import desc
 
+from elastic import es
 from settings.config import settings
 from shops.models import Shop, Category, Product
 
@@ -15,6 +16,43 @@ async def read_item(request: Request):
     return templates.TemplateResponse(request=request,
                                       name="category.html",
                                       context={"title": "Shops", "items": objects})
+
+
+@router.get("/s")
+async def search(q: str):
+    res = await es.search(
+        index="products",
+        size=500,
+        sort=['last_price:desc',],
+        query={
+            "match": {
+                "name": {
+                    "query": q,
+                    "operator": "and"
+                }
+            }
+            # "fuzzy": {
+            #     "name": {
+            #         "value": q,
+            #         "fuzziness": "AUTO"
+            #     }
+            # },
+            # "wildcard": {
+            #     "name": {
+            #         "value": f"*{q}*",
+            #         "case_insensitive": True
+            #     }
+            # }
+            # "prefix": {
+            #     "name": q.lower()
+            # }
+        }
+    )
+    return [hit["_source"] for hit in res["hits"]["hits"]]
+
+@router.get("/search", response_class=HTMLResponse)
+async def get_search_page(request: Request):
+    return templates.TemplateResponse("search.html", {"request": request})
 
 
 @router.get("/{item_id}", response_class=HTMLResponse)
@@ -48,7 +86,7 @@ async def read_item(
         query = dict(
             category_id=int(item_id),
             ordered=[ordered, ] if ordered else ['in_stock', 'name', ],
-            related=['category', 'prices'],
+            related=['category', 'prices', 'category.shop'],
             only_changed=only_changed,
             limit=page_size,
             offset=offset,
@@ -57,7 +95,7 @@ async def read_item(
     except ValueError:
         query = dict(
             ordered=[ordered, ] if ordered else ['in_stock', 'name', ],
-            related=['category', 'prices'],
+            related=['category', 'prices', 'category.shop'],
             only_changed=only_changed if only_changed else "expensive",
             limit=page_size,
             offset=offset,
@@ -66,4 +104,13 @@ async def read_item(
     objects = await Product.filter_by_(**query)
     objects["page"] = page
     return templates.TemplateResponse(request=request, name="goods.html", context={"title": "Goods", **objects})
+
+@router.get("/{shop_id}/{category_id}/{good_id}", response_class=HTMLResponse)
+async def read_item(request: Request, good_id: int):
+    objects = await Product.filter_by_(id=good_id, related=['category', 'prices', 'category.shop'])
+    if objects:
+        objects = objects
+    objects["page"] = 0
+    return templates.TemplateResponse(request=request, name="goods.html", context={"title": 'God', **objects})
+
 

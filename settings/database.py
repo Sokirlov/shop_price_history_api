@@ -78,14 +78,44 @@ class Base(DeclarativeBase):
         # Повертаємо тільки ті пари ключ-значення, які є в полях моделі
         return {key: value for key, value in kwargs.items() if key in model_fields}
 
+    # @classmethod
+    # def validate_relationships(cls, relateds: list[str]) -> list:
+    #     relations = []
+    #     for related in relateds:
+    #         relation_ = getattr(cls, related, None)
+    #
+    #         # if relation_ is None:
+    #         #     raise ValueError(f"Relationship '{related}' not found on model '{cls.__name__}'")
+    #         relations.append(selectinload(relation_))
+    #     return relations
+
+
     @classmethod
     def validate_relationships(cls, relateds: list[str]) -> list:
         relations = []
         for related in relateds:
-            relation_ = getattr(cls, related, None)
-            if relation_ is None:
-                raise ValueError(f"Relationship '{related}' not found on model '{cls.__name__}'")
-            relations.append(selectinload(relation_))
+            parts = related.split(".")
+            current_cls = cls
+            current_loader = None
+
+            for i, part in enumerate(parts):
+                attr = getattr(current_cls, part, None)
+                if attr is None:
+                    raise ValueError(f"Relationship '{part}' not found on model '{current_cls.__name__}'")
+
+                # Отримати model, на яку вказує зв’язок
+                property_ = getattr(current_cls, part).property
+                target_cls = property_.mapper.class_
+
+                if current_loader is None:
+                    current_loader = selectinload(attr)
+                else:
+                    current_loader = current_loader.selectinload(attr)
+
+                current_cls = target_cls
+
+            relations.append(current_loader)
+
         return relations
 
     @classmethod
@@ -215,7 +245,7 @@ class Base(DeclarativeBase):
             stmt = stmt.options(*relations)
 
         result = await cls._paginate_objects_(stmt, offset, limit)
-        # print('[filter_by_]', result)
+        print('[filter_by_]', result)
         return result
 
     @classmethod

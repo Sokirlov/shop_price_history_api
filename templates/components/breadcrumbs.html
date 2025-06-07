@@ -6,8 +6,8 @@
             /&nbsp;<a href="/{{ items.0.site_id }}/">{{ items.0.shop.name }}</a>
         {% endif %}
         {% if items.0.category_id %}
-            /&nbsp; <a href="/{{ items.0.category.shop_id }}/">Категорії</a>
-            /&nbsp;{{ items.0.category.name }}
+            /&nbsp; <a href="/{{ items.0.category.shop_id }}/">{{ items.0.category.shop.name }}</a>
+            /&nbsp;<a href="/{{ items.0.category.shop_id }}/{{ items.0.category_id }}/">{{ items.0.category.name }}</a>
         {% endif %}
     {% endif %}
 </div>

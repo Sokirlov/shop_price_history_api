@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastadmin import fastapi_app as admin_app
+
+from elastic import create_index, index_products_from_db
 # from starlette.middleware.cors import CORSMiddleware
 
 from shops.urls import router as shop_router
@@ -16,6 +18,10 @@ async def startup():
     # Ініціалізація таблиць у базі даних
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    await create_index()
+    await index_products_from_db()
+
 
 app.mount("/admin", admin_app)
 app.mount("/static", settings.static, name="static")

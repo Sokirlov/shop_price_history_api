@@ -1,0 +1,37 @@
+<div style="position: relative" class="w-25">
+    <input type="text" id="searchInput" placeholder="Введи назву товару..." autocomplete="off">
+    <div id="search_result">
+        <ul id="results"></ul>
+    </div>
+</div>
+<script>
+    const input = document.getElementById('searchInput');
+    const results_container = document.getElementById('search_result');
+    const results = document.getElementById('results');
+    input.addEventListener('input', async () => {
+        const query = input.value.trim();
+        if (query.length < 3) {
+            results.innerHTML = '';
+            results_container.style.display = 'none';
+            return;
+        }
+        try {
+            const response = await fetch(`/s?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            results_container.style.display = 'block';
+            results.innerHTML = '';
+            if (data.length === 0) {
+                results.innerHTML = '<li>Нічого не знайдено</li>';
+                return;
+            }
+            data.forEach(product => {
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="/1/${product.category_id}/${product.id}" >${product.name}</a> — ${product.last_price} грн`;
+                results.appendChild(li);
+            });
+        } catch (err) {
+            console.error(err);
+            results.innerHTML = '<li>Помилка при пошуку</li>';
+        }
+    });
+</script>
