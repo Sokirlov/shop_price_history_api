@@ -1,3 +1,5 @@
+from asyncio import sleep
+
 from elasticsearch import AsyncElasticsearch
 from elasticsearch.helpers import async_bulk
 
@@ -46,25 +48,29 @@ async def create_index():
             }
         })
 
+BATCH_SIZE = 1000
 
 async def index_products_from_db():
     es = AsyncElasticsearch("http://elasticsearch:9200")
     products = await Product.get_all_async()
 
     print(f"I have {len(products)} products")
-    actions = [
-        {
-            "_index": "products",
-            "_id": product.id,
-            "_source": {
-                "id": product.id,
-                "name": product.name,
-                "last_price": product.last_price,
-                "price_change": product.price_change,
-                "category_id": product.category_id,
-            },
-        }
-        for product in products
-    ]
+    for i in range(0, len(products), BATCH_SIZE):
+        batch = products[i:i + BATCH_SIZE]
 
-    await async_bulk(es, actions)
+        actions = [
+            {
+                "_index": "products",
+                "_id": product.id,
+                "_source": {
+                    "id": product.id,
+                    "name": product.name,
+                    "last_price": product.last_price,
+                    "price_change": product.price_change,
+                },
+            }
+            for product in batch
+        ]
+
+        await async_bulk(es, actions)
+        await sleep(0.1)
