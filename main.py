@@ -25,7 +25,7 @@ async def startup():
         await conn.run_sync(Base.metadata.create_all)
 
     global es
-    es = AsyncElasticsearch("http://elastic_search:9200")
+    es = AsyncElasticsearch("http://localhost:9200")
 
     await create_index(es)
     # await index_products_from_db()
