@@ -50,13 +50,10 @@ async def create_index(es):
 BATCH_SIZE = 1000
 
 async def index_products_from_db(es):
-
     products = await Product.get_all_async()
-
     print(f"I have {len(products)} products")
     for i in range(0, len(products), BATCH_SIZE):
         batch = products[i:i + BATCH_SIZE]
-
         actions = [
             {
                 "_index": "products",
@@ -72,4 +69,5 @@ async def index_products_from_db(es):
         ]
 
         await async_bulk(es, actions)
+        print(f'Updated {i} products')
         await sleep(0.1)
