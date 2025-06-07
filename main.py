@@ -23,11 +23,17 @@ async def startup():
         await conn.run_sync(Base.metadata.create_all)
 
     await create_index()
-    await index_products_from_db()
+    # await index_products_from_db()
 
 
 app.mount("/admin", admin_app)
 app.mount("/static", settings.static, name="static")
+
+@app.post("/reindex")
+async def reindex_products():
+    await index_products_from_db()
+    return {"status": "done"}
+
 app.include_router(shop_router)
 #
 # app.add_middleware(
