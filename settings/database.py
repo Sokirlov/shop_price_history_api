@@ -189,7 +189,7 @@ class Base(DeclarativeBase):
             except Exception as e:
                 print('Exception', e)
                 shops = result.all()
-            print('get all shops', shops)
+            print('get all shops', len(shops))
             return shops
 
     @classmethod
