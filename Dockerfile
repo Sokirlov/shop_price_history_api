@@ -5,13 +5,16 @@ LABEL authors="sokirlov"
 #    locale-gen en_US.UTF-8 && \
 #    apt-get install -y postgresql-client
 
-RUN apk update && apk install -y locales && \
-    locale-gen en_US.UTF-8 && \
-    apk install -y postgresql-client
+RUN apk update && \
+    apk add --no-cache postgresql-client musl-locales musl-locales-lang
 
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV LC_ALL en_US.UTF-8
+ENV LANG=en_US.UTF-8 \
+    LANGUAGE=en_US:en \
+    LC_ALL=en_US.UTF-8
+
+#ENV LANG en_US.UTF-8
+#ENV LANGUAGE en_US:en
+#ENV LC_ALL en_US.UTF-8
 
 RUN pip install --upgrade pip
 WORKDIR /app
