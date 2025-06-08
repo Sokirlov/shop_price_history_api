@@ -47,7 +47,7 @@ async def create_index(es):
             }
         })
 
-BATCH_SIZE = 1000
+BATCH_SIZE = 100
 
 async def index_products_from_db(es):
     products = await Product.get_all_async()
