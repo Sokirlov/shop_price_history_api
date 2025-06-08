@@ -2,6 +2,7 @@ from elasticsearch import AsyncElasticsearch
 from fastapi import APIRouter, Request, Query
 from fastapi.responses import HTMLResponse
 
+from main import es
 from settings.config import settings
 from shops.models import Shop, Category, Product
 
@@ -19,7 +20,7 @@ async def read_item(request: Request):
 
 @router.get("/s")
 async def search(q: str):
-    es = AsyncElasticsearch("http://elastic_search:9200")
+
     res = await es.search(
         index="products",
         size=500,
