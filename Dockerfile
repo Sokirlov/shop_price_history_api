@@ -1,9 +1,13 @@
 FROM python:3.12-alpine3.22
 LABEL authors="sokirlov"
 
-RUN apt-get update && apt-get install -y locales && \
+#RUN apt-get update && apt-get install -y locales && \
+#    locale-gen en_US.UTF-8 && \
+#    apt-get install -y postgresql-client
+
+RUN apk update && apk install -y locales && \
     locale-gen en_US.UTF-8 && \
-    apt-get install -y postgresql-client
+    apk install -y postgresql-client
 
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
