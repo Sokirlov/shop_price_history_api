@@ -2,7 +2,6 @@ from elasticsearch import AsyncElasticsearch
 from fastapi import APIRouter, Request, Query
 from fastapi.responses import HTMLResponse
 
-from main import es
 from settings.config import settings
 from shops.models import Shop, Category, Product
 
@@ -20,35 +19,35 @@ async def read_item(request: Request):
 
 @router.get("/s")
 async def search(q: str):
-
-    res = await es.search(
-        index="products",
-        size=500,
-        sort=['last_price:desc',],
-        query={
-            "match": {
-                "name": {
-                    "query": q,
-                    "operator": "and"
+    async with  AsyncElasticsearch("http://elastic_search:9200") as client:
+        res = await client.search(
+            index="products",
+            size=500,
+            sort=['last_price:desc',],
+            query={
+                "match": {
+                    "name": {
+                        "query": q,
+                        "operator": "and"
+                    }
                 }
+                # "fuzzy": {
+                #     "name": {
+                #         "value": q,
+                #         "fuzziness": "AUTO"
+                #     }
+                # },
+                # "wildcard": {
+                #     "name": {
+                #         "value": f"*{q}*",
+                #         "case_insensitive": True
+                #     }
+                # }
+                # "prefix": {
+                #     "name": q.lower()
+                # }
             }
-            # "fuzzy": {
-            #     "name": {
-            #         "value": q,
-            #         "fuzziness": "AUTO"
-            #     }
-            # },
-            # "wildcard": {
-            #     "name": {
-            #         "value": f"*{q}*",
-            #         "case_insensitive": True
-            #     }
-            # }
-            # "prefix": {
-            #     "name": q.lower()
-            # }
-        }
-    )
+        )
     return [hit["_source"] for hit in res["hits"]["hits"]]
 
 @router.get("/search", response_class=HTMLResponse)

@@ -6,6 +6,8 @@ from shops.models import Product
 
 
 
+
+
 async def create_index(es):
     # es = AsyncElasticsearch("http://elasticsearch:9200")
 
