@@ -19,7 +19,7 @@ async def read_item(request: Request):
 
 @router.get("/s")
 async def search(q: str):
-    es = AsyncElasticsearch("http://elasticsearch:9200")
+    es = AsyncElasticsearch("http://elastic_search:9200")
     res = await es.search(
         index="products",
         size=500,
