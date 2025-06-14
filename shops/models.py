@@ -69,6 +69,8 @@ class Product(Base):
     category_id: Mapped[int] = mapped_column(ForeignKey("category.id", ondelete="CASCADE"))
     last_price: Mapped[float | None] = mapped_column(default=0.0, nullable=True)
     price_change: Mapped[float | None] = mapped_column(default=0.0, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(auto_now_add=True)
+    updated_at: Mapped[datetime] = mapped_column(auto_now=True)
 
     # Зв'язок з категорією
     category = relationship("Category", back_populates="products")
@@ -235,6 +237,9 @@ class Price(Base):
 
     price: Mapped[float]
     product_id: Mapped[int] = mapped_column(ForeignKey("product.id", ondelete="CASCADE"))
+
+    created_at: Mapped[datetime] = mapped_column(auto_now_add=True)
+    updated_at: Mapped[datetime] = mapped_column(auto_now=True)
 
     # Зв'язок з категорією
     product = relationship("Product", back_populates="prices")
