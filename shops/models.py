@@ -238,8 +238,6 @@ class Price(Base):
     price: Mapped[float]
     product_id: Mapped[int] = mapped_column(ForeignKey("product.id", ondelete="CASCADE"))
 
-    created_at: Mapped[datetime] = mapped_column(auto_now_add=True)
-    updated_at: Mapped[datetime] = mapped_column(auto_now=True)
 
     # Зв'язок з категорією
     product = relationship("Product", back_populates="prices")
@@ -317,7 +315,7 @@ class Price(Base):
 
             # обʼєкти які треба створити
             to_create = [
-                Price(product_id=price_['product_id'], price=price_['price'])
+                Price(product_id=price_['product_id'], price=price_['price'], created_at=datetime.now(timezone.utc))
                 for price_ in prices
                 if price_['product_id'] not in existing_prices
             ]
